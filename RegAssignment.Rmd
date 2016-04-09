@@ -1,0 +1,116 @@
+---
+title: "Transmission Type and Fuel Efficiency"
+author: "Taiki Sakai"
+date: "October 24, 2015"
+output: 
+      pdf_document:
+            fig_caption: yes
+---
+
+## Summary
+In this paper we examine the effect of transmition type (automatic or manual)
+on fuel efficiency (miles per gallon). We will try to create a model for
+fuel efficiency using any number of variables among weight, horsepower, 
+transmission type, and other data recorded for 32 different cars. After considering
+a few differnet models, we arrive at a model using horsepower and transmission type
+and conclude that an automatic transmission has lower fuel efficiency than a
+manual transmission
+
+## Exploratory Analysis
+We start our analysis by loading in the dataset and taking a quick look at
+the correlation matrix and the pairs plot (Figure 3 in the Appendix). Only a 
+subset of the correlation matrix is reproduced, for brevity.
+```{r, eval=FALSE, echo=FALSE}
+library(datasets)
+data(mtcars)
+cor(mtcars)
+```
+```{r,include=FALSE,echo=FALSE}
+library(dplyr)
+```
+
+```{r, echo=FALSE}
+cor(select(mtcars, c(mpg,cyl,disp,hp,wt,am)))
+```
+From the correlation matrix we can see that horsepower, cylinder count,
+displacement, and weight are all highly correlated with each other. This makes sense,
+as a higher displacement engine would require more cylinders and should yield a 
+higher horsepower. A higher weight vehicle will require more horsepower to
+move it effectively. Intuitively, it would make sense if one of (or all of) these variables
+would have an effect on fuel efficiency, and we can see thta they all have high correlation
+with mpg. Since they are all strongly correlated with each other, it may be possible to use 
+just one of them as a proxy for all of the others as they generally measure a similar
+quality of a vehicle. The rest of the variables have a lower correlation with mpg,
+so these seem like a good place to start our analysis.
+
+We also notice that cyl, disp, and wt all have a relatively high correlation with
+am, the other variable we are interested in. Because of this, we will begin our analysis 
+using horsepower and transmission type, as they are both correlated with mpg but not
+strongly correlated with each other. 
+
+## Model Building
+We will start our model at a very basic level. There are clearly factors other
+than transmission type that should affect fuel efficiency, so we will not
+consider a model that only includes transmission type. Our first model will
+use horsepower and transmission type, and we will try to build more complex 
+models from there.
+```{r,echo=FALSE}
+fit1 <- lm(mpg~hp+am, mtcars)
+summary(fit1)$coefficients
+```
+With this model we can see that the coefficients for the intercept, hp, and am
+are statistically significant. The R-squared is fairly high at .767, suggesting
+the model is a decent fit for our data. The residual plot (Figure 1 in Appendix)
+does not seem to have any pattern to it, suggesting that the model might be reasonable.
+
+From here we will try adding other variables from our dataset and use an anova
+test to determine if the additional variables contribute to the model. We will include
+all of the remaining variables in the dataset, and also an interaction variable
+between horsepower and transmission type. For brevity, the results of these are not
+shown.
+
+These tests reveal that only one of the additional variables appears to significantly
+improve our model. That p-value corresponds to the weight variable. With this new
+knowledge we construct a model with horsepower, weight, and transmission type.
+```{r, echo=FALSE}
+fit2<-lm(mpg~hp+am+wt,mtcars)
+summary(fit2)$coefficients
+```
+One thing to notice is that the additon of the weight variable has increased the standard
+error of the coefficient for our transmission variable to the point where it is no
+longer statistically significant. This could suggest that there is not a relationship
+between fuel efficiency and transmission type. However, we also notice from the residual
+plot (Figure 2 in Appendix) that there might be a slight negative or U-shaped pattern in the residuals. This
+suggests that the model might not be correct. With this concern in mind, we will
+choose to revert to our simpler model using only horsepower and transmission type.
+
+## Results
+
+Our final model is:
+```{r, echo=FALSE}
+summary(fit1)
+```
+These coefficients can be interpreted as: for every 1 increase in horsepower, mpg
+decreases by .0589. If a transmission is manual (am=1), mpg increases by 5.277. 
+Thus we conclude that manual transmissions have higher fuel efficiency, since the 
+coefficient 5.277 is positive and is statistically significant. A 95% confidence
+interval for the increased mpg in a manual transmission is
+`r c(5.277-1.09*qt(.975,29), 5.277+1.09*qt(.975,29))`.
+
+## Appendix
+
+```{r,fig.width=3.5, fig.height=3.5, echo=FALSE, fig.cap='Residuals for Simpler Model'}
+plot(fitted(fit1), resid(fit1), xlab='Fitted Values', ylab='Residuals', 
+     main='Residual plot for mpg~hp+am')
+```
+
+```{r, fig.width=3.5, fig.height=3.5, echo=FALSE, fig.cap='Residuals for Model with Weight'}
+plot(fitted(fit2),resid(fit2), xlab='Fitted Values', ylab='Residuals',
+     main='Residual plot for mpg~hp+am+wt')
+```
+
+```{r, fig.width=6, fig.height=6, echo=FALSE, fig.cap='Pairs Plot for mtcars'}
+pairs(mtcars)
+```
+
+
